@@ -1,22 +1,23 @@
 ---
+
 - name: create temp directory
   file:
     dest: "{{ wsdd_download_dir }}"
     state: directory
 
-- block:
-  - name: set request version
-    set_fact:
-      wsdd_version: HEAD
-  when: wsdd_version == "latest"
+- name: install git
+  apt:
+    name: git
+    update_cache: yes
 
 - name: clone repo
   git:
-    repo: "{{ wsdd_github_url }}"
+    repo: "{{ wsdd_git_url }}"
     dest: "{{ wsdd_download_dir }}"
     version: "{{ wsdd_version }}"
     update: yes
     force: yes
+  register: repo
 
 - name: copy wsdd.py
   copy:
@@ -25,47 +26,70 @@
     remote_src: yes
     mode: '0755'
   become: true
+  register: wsdd_bin
 
-- name: update systemd definition group
-  lineinfile:
-    path: "{{ wsdd_download_dir }}/etc/systemd/wsdd.service"
-    regexp: '^Group=nobody'
-    line: Group=nogroup
+- name: ensure man8 directory exists
+  file:
+    state: directory
+    dest: /usr/local/man/man8
 
-- name: update systemd definition command line
-  lineinfile:
-    path: "{{ wsdd_download_dir }}/etc/systemd/wsdd.service"
-    regexp: '^ExecStart'
-    line: "ExecStart=/usr/bin/wsdd --workgroup {{ wsdd_workgroup }} --shortlog"
+- name: copy wsdd manpage
+  copy:
+    src: "{{ wsdd_download_dir }}/man/wsdd.8"
+    dest: /usr/local/man/man8/wsdd.8
+    remote_src: yes
+    mode: '0644'
+  become: true
 
-- name: copy systemd definition
+- name: copy systemd service unit
   copy:
     src: "{{ wsdd_download_dir }}/etc/systemd/wsdd.service"
     dest: /etc/systemd/system/wsdd.service
     remote_src: yes
   become: true
+  register: service_unit_file
+
+- name: create wsdd defaults file
+  template:
+    src: default.j2
+    dest: /etc/default/wsdd
+  become: true
+  register: wsdd_config
 
 - name: create ufw definition
   template:
     src: ufw.j2
     dest: /etc/ufw/applications.d/wsdd
   become: true
+  register: ufw_config
+  when: install_ufw_rule
 
 - name: allow firewall
   community.general.ufw:
     rule: allow
     name: wsdd
   become: true
+  when: install_ufw_rule and ufw_config.changed
 
-- name: start wsdd service
+- name: reload systemd
+  systemd:
+    daemon_reload: yes
+  become: true
+  when: service_unit_file.changed
+
+- name: ensure wsdd service is running and enabled
+  systemd:
+    name: wsdd
+    enabled: yes
+    daemon_reload: yes
+    state: started
+  become: true
+
+- name: restart wsdd service on changes
   systemd:
     name: wsdd
     enabled: yes
     daemon_reload: yes
     state: restarted
   become: true
-
-- name: remove temp directory
-  file:
-    dest: "{{ wsdd_download_dir }}"
-    state: absent
+  when: wsdd_bin.changed or service_unit_file.changed or wsdd_config.changed
