@@ -1,0 +1,10 @@
+---
+- name: Converge
+  hosts: all
+  tasks:
+    - name: Install systemd
+      apt:
+        name: systemd
+    - name: Include ansible-role-wsdd
+      include_role:
+        name: ansible-role-wsdd

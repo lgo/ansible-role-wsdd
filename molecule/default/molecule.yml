@@ -1,0 +1,28 @@
+---
+dependency:
+  name: galaxy
+driver:
+  name: docker
+platforms:
+  # - name: ubuntu-20
+  #   hostname: ubuntu
+  #   image: mpaivabarbosa/molecule-systemd-ubuntu:20.04
+  #   volumes:
+  #     - /sys/fs/cgroup:/sys/fs/cgroup:ro
+  #   privileged: true
+  #   pre_build_image: true
+  #   override_command: false
+  - name: ubuntu_20_04
+    hostname: ubuntu
+    image: geerlingguy/docker-ubuntu2004-ansible
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:ro
+    privileged: true
+    pre_build_image: true
+
+    command: '/sbin/init'
+    # override_command: false
+provisioner:
+  name: ansible
+verifier:
+  name: ansible
