@@ -2,7 +2,7 @@
 galaxy_info:
   role_name: wsdd
   author: Joey Pereira
-  description: Installs and configures WSDD (christgau/wsdd)
+  description: Installs and configures WSDD (christgau/wsdd); forked and fixed as-of 2022/08/03.
   license: MIT
   min_ansible_version: 2.10
   platforms:
