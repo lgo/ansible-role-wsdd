@@ -9,7 +9,7 @@ wsdd_version: HEAD
 wsdd_download_dir: /tmp/wsdd
 
 # wsdd parameters.
-wsdd_params: "--shortlog"
+wsdd_params: ""
 
 # Whether to install the ufw rule.
 install_ufw_rule: false
